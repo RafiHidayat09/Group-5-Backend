@@ -49,6 +49,17 @@ class User extends Authenticatable implements JWTSubject
         ];
     }
 
+
+    //===========================
+    public function psikologProfile()
+    {
+        return $this->hasOne(PsikologProfile::class, 'psikolog_id');
+    }
+
+
+
+
+
     //===========================
     public function getJWTIdentifier() {
         return $this->getKey();
@@ -57,6 +68,8 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims() {
         return [];
     }
+
+
 }
 
 
