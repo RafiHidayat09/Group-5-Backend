@@ -32,8 +32,8 @@ class PsikologProfileSeeder extends Seeder
     'spesialisasi' => 'Kesehatan Mental Umum',
     'pengalaman' => '5 tahun',
     'deskripsi' => 'Psikolog default bawaan sistem.',
-    'no_str' => 'SIPP-00001', 
-    'foto' => null,
+    'no_str' => 'SIPP-00001',
+    'foto' => 'default.jpg',
     ]);
     }
 }
