@@ -70,6 +70,11 @@ class User extends Authenticatable implements JWTSubject
     }
 
 
+    public function articles()
+{
+    return $this->hasMany(Article::class, 'penulis_id');
+}
+
 }
 
 

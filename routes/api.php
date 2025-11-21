@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\PsikologProfileController;
 
 Route::get('/user', function (Request $request) {
@@ -15,13 +16,15 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api'
 
 Route::middleware('auth:api')->group(function () {
 
-    // Menyimpan hasil asesmen
-    Route::post('/quiz-results', [QuizResultController::class, 'store']);
-      // Lihat quiz user sendiri
-    Route::get('/quiz-results', [QuizResultController::class, 'userResults']);
+
 
     // Hanya psikiater yang bisa melihat semua asesmen
-    Route::middleware('role:psikiater')->get('/psikolog/quiz-results', [QuizResultController::class, 'index']);
+
      Route::get('/psikolog-profile', [PsikologProfileController::class, 'me']);
+     Route::get('/articles', [ArticleController::class, 'index']);
+Route::get('/articles/{id}', [ArticleController::class, 'show']);
+Route::post('/articles', [ArticleController::class, 'store']);
+Route::put('/articles/{id}', [ArticleController::class, 'update']);
+Route::delete('/articles/{id}', [ArticleController::class, 'destroy']);
 
 });
