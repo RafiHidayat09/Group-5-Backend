@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\PsikologProfileController;
 
@@ -31,5 +32,8 @@ Route::get('/articles/{id}', [ArticleController::class, 'show']);
 Route::post('/articles', [ArticleController::class, 'store']);
 Route::put('/articles/{id}', [ArticleController::class, 'update']);
 Route::delete('/articles/{id}', [ArticleController::class, 'destroy']);
+
+Route::get('/users', [UserController::class, 'index']);
+Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
 });
