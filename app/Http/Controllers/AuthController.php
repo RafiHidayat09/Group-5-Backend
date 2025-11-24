@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Illuminate\Support\Facades\Validator;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -112,5 +115,51 @@ class AuthController extends Controller
             'success' => true,
             'user' => auth()->guard('api')->user()
         ], 200);
+    }
+
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    /**
+     * HANDLE GOOGLE CALLBACK
+     */
+    public function handleGoogleCallback(Request $request)
+    {
+        try {
+            $googleUser = Socialite::driver('google')->user();
+
+            // Cari user berdasarkan email atau buat baru
+            $user = User::where('email', $googleUser->getEmail())->first();
+
+            if (!$user) {
+                $user = User::create([
+                    'name' => $googleUser->getName(),
+                    'email' => $googleUser->getEmail(),
+                    'password' => Hash::make(Str::random(24)),
+                    'google_id' => $googleUser->getId(),
+                    'role' => 'user',
+                    'email_verified_at' => now(),
+                ]);
+            } else {
+                $user->update(['google_id' => $googleUser->getId()]);
+            }
+
+            $token = JWTAuth::fromUser($user);
+
+            $frontendURL = env('FRONTEND_URL', 'http://localhost:5173');
+
+            return redirect("{$frontendURL}/auth/callback?token={$token}&success=true&user=" . base64_encode(json_encode([
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role
+            ])));
+
+        } catch (\Exception $e) {
+            $frontendURL = env('FRONTEND_URL', 'http://localhost:5173');
+            return redirect("{$frontendURL}/auth/callback?success=false&error=" . urlencode('Google login failed: ' . $e->getMessage()));
+        }
     }
 }

@@ -15,12 +15,22 @@ class CreateChatifyMessagesTable extends Migration
     {
         Schema::create('ch_messages', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->foreignId('consultation_id')->constrained()->onDelete('cascade');
             $table->bigInteger('from_id');
+            $table->string('from_type'); // 'user' or 'psychologist'
             $table->bigInteger('to_id');
-            $table->string('body',5000)->nullable();
+            $table->string('to_type'); // 'user' or 'psychologist'
+            $table->string('body', 5000)->nullable();
             $table->string('attachment')->nullable();
             $table->boolean('seen')->default(false);
+            $table->timestamp('seen_at')->nullable();
             $table->timestamps();
+
+            // Index for better performance
+            $table->index(['consultation_id']);
+            $table->index(['from_id', 'from_type']);
+            $table->index(['to_id', 'to_type']);
+            $table->index(['seen']);
         });
     }
 
