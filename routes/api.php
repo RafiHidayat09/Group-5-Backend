@@ -17,10 +17,15 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api'
 Route::middleware('auth:api')->group(function () {
 
 
-
     // Hanya psikiater yang bisa melihat semua asesmen
 
      Route::get('/psikolog-profile', [PsikologProfileController::class, 'me']);
+      Route::get('/psikiater', [PsikologProfileController::class, 'index']);
+    Route::post('/psikiater', [PsikologProfileController::class, 'store']);
+    Route::get('/psikiater/{id}', [PsikologProfileController::class, 'show']);
+    Route::post('/psikiater/{id}', [PsikologProfileController::class, 'update']); // pakai POST karena React FormData
+    Route::delete('/psikiater/{id}', [PsikologProfileController::class, 'destroy']);
+
      Route::get('/articles', [ArticleController::class, 'index']);
 Route::get('/articles/{id}', [ArticleController::class, 'show']);
 Route::post('/articles', [ArticleController::class, 'store']);
