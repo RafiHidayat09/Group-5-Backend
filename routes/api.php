@@ -35,5 +35,7 @@ Route::delete('/articles/{id}', [ArticleController::class, 'destroy']);
 
 Route::get('/users', [UserController::class, 'index']);
 Route::delete('/users/{id}', [UserController::class, 'destroy']);
+Route::get('/users/stats', [UserController::class, 'stats']);
+
 
 });

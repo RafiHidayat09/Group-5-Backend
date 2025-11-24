@@ -30,4 +30,24 @@ class UserController extends Controller
             "message" => "User berhasil dihapus"
         ]);
     }
+
+    public function stats()
+{
+    // Hitung user berdasarkan role
+    $roleCount = \App\Models\User::select('role', \DB::raw('count(*) as total'))
+        ->groupBy('role')
+        ->get();
+
+    // Hitung user bergabung per bulan
+    $monthly = \App\Models\User::selectRaw("DATE_FORMAT(created_at, '%Y-%m') as bulan, COUNT(*) as total")
+        ->groupBy('bulan')
+        ->orderBy('bulan', 'ASC')
+        ->get();
+
+    return response()->json([
+        'roles' => $roleCount,
+        'monthly' => $monthly,
+    ]);
+}
+
 }
