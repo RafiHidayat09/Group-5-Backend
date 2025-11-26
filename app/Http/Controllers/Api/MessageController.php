@@ -21,11 +21,15 @@ class MessageController extends Controller
     public function index($consultationId)
     {
         try {
+            $user = auth()->guard('api')->user();
+
             // Check if consultation exists and user has access
             $consultation = Consultation::where('id', $consultationId)
-                ->where(function($query) {
-                    $query->where('user_id', auth()->guard('api')->id())
-                          ->orWhere('psychologist_id', auth()->guard('api')->id());
+                ->where(function($query) use ($user) {
+                    $query->where('user_id', $user->id) // ✅ User (pasien)
+                        ->orWhereHas('psychologist', function($q) use ($user) {
+                            $q->where('user_id', $user->id); // ✅ Psychologist via relasi
+                        });
                 })
                 ->firstOrFail();
 
@@ -234,8 +238,10 @@ class MessageController extends Controller
 
             $consultation = Consultation::where('id', $consultationId)
                 ->where(function($query) use ($user) {
-                    $query->where('user_id', $user->id)
-                          ->orWhere('psychologist_id', $user->id);
+                    $query->where('user_id', $user->id) // ✅ User (pasien)
+                        ->orWhereHas('psychologist', function($q) use ($user) {
+                            $q->where('user_id', $user->id); // ✅ Psychologist via relasi
+                        });
                 })
                 ->firstOrFail();
 

@@ -20,7 +20,7 @@ class CreateChatifyMessagesTable extends Migration
             $table->string('from_type'); // 'user' or 'psychologist'
             $table->bigInteger('to_id');
             $table->string('to_type'); // 'user' or 'psychologist'
-            $table->string('body', 5000)->nullable();
+            $table->text('body')->nullable();
             $table->string('attachment')->nullable();
             $table->boolean('seen')->default(false);
             $table->timestamp('seen_at')->nullable();
@@ -31,6 +31,7 @@ class CreateChatifyMessagesTable extends Migration
             $table->index(['from_id', 'from_type']);
             $table->index(['to_id', 'to_type']);
             $table->index(['seen']);
+            $table->index(['created_at']);
         });
     }
 

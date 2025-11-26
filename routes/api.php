@@ -15,6 +15,10 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/auth/google', [AuthController::class, 'redirectToGoogle'])->name('google.redirect');
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('google.callback');
 
+Route::get('/psychologists', [PsychologistController::class, 'index']);
+Route::get('/psychologists/available', [PsychologistController::class, 'available']);
+Route::get('/psychologists/{id}', [PsychologistController::class, 'show']);
+
 Route::middleware(['auth:api'])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -39,11 +43,33 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('/consultation/start', [ConsultationController::class, 'start']);
         Route::post('/consultation/{id}/pay', [ConsultationController::class, 'pay']);
         Route::post('/consultation/{id}/rate', [ConsultationController::class, 'rate']);
+    });
 
-        // View Psychologist List (Biasanya user yang cari dokter)
-        Route::get('/psychologists', [PsychologistController::class, 'index']);
-        Route::get('/psychologists/available', [PsychologistController::class, 'available']);
-        Route::get('/psychologists/{id}', [PsychologistController::class, 'show']);
+    // ✅ ROUTE KHUSUS PSYCHOLOGIST
+    Route::middleware(['role:psychologist'])->prefix('psychologist')->group(function () {
+
+        // Dashboard & Stats
+        Route::get('/dashboard-stats', [PsychologistController::class, 'dashboardStats']); // Statistik Dashboard
+        Route::get('/recent-consultations', [PsychologistController::class, 'recentConsultations']); // Konsultasi Terbaru (Home)
+        Route::get('/earnings', [PsychologistController::class, 'earnings']); // Laporan Pendapatan
+
+        // Kelola Konsultasi
+        Route::get('/consultations', [PsychologistController::class, 'consultations']); // List Semua Chat
+        Route::get('/consultation/{id}', [PsychologistController::class, 'consultationDetail']); // Detail Chat
+        // Catatan: startSession belum ada di ConsultationController, pakai logic frontend redirect ke chat room saja dulu
+        // Route::post('/consultation/{id}/start', [ConsultationController::class, 'startSession']);
+
+        // Profile & Status
+        Route::get('/profile', [PsychologistController::class, 'profile']); // Get Profile
+        Route::put('/profile', [PsychologistController::class, 'updateProfile']); // Update Profile
+        Route::put('/status', [PsychologistController::class, 'updateStatus']); // Online/Offline (Ganti updateAvailability jadi updateStatus)
+
+        // Schedule
+        Route::get('/schedule', [PsychologistController::class, 'schedule']);
+        Route::put('/schedule', [PsychologistController::class, 'updateSchedule']);
+
+        // Reviews
+        Route::get('/reviews', [PsychologistController::class, 'reviews']);
     });
 
     Route::middleware(['role:user,psychologist'])->group(function () {

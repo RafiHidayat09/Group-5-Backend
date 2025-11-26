@@ -1,21 +1,18 @@
 <?php
-
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class WalletTransactionsSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $transactions = [
+            // Top up John Doe
             [
-                'wallet_id' => 1, // John Doe's wallet
+                'wallet_id' => 2, // John's wallet
+                'consultation_id' => null,
                 'type' => 'topup',
                 'amount' => 500000,
                 'description' => 'Top up via Bank Transfer',
@@ -23,8 +20,10 @@ class WalletTransactionsSeeder extends Seeder
                 'created_at' => now()->subDays(5),
                 'updated_at' => now()->subDays(5),
             ],
+            // Top up Jane Smith
             [
-                'wallet_id' => 2, // Jane Smith's wallet
+                'wallet_id' => 3, // Jane's wallet
+                'consultation_id' => null,
                 'type' => 'topup',
                 'amount' => 300000,
                 'description' => 'Top up via Credit Card',
@@ -32,10 +31,12 @@ class WalletTransactionsSeeder extends Seeder
                 'created_at' => now()->subDays(3),
                 'updated_at' => now()->subDays(3),
             ],
+            // Payment untuk consultation #1 (John -> Dr. Sarah)
             [
-                'wallet_id' => 1,
+                'wallet_id' => 2, // John's wallet
+                'consultation_id' => 1,
                 'type' => 'payment',
-                'amount' => 150000,
+                'amount' => 250000,
                 'description' => 'Konsultasi dengan Dr. Sarah Wijaya',
                 'status' => 'completed',
                 'created_at' => now()->subDays(2),

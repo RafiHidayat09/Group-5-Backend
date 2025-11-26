@@ -1,5 +1,4 @@
 <?php
-// File: app/Models/ChMessage.php
 
 namespace App\Models;
 
@@ -10,7 +9,6 @@ class ChMessage extends Model
 {
     protected $table = 'ch_messages';
 
-    // ✅ TAMBAHKAN INI untuk UUID
     public $incrementing = false;
     protected $keyType = 'string';
 
@@ -31,7 +29,7 @@ class ChMessage extends Model
         'seen_at' => 'datetime',
     ];
 
-    // ✅ Auto-generate UUID saat create
+    // Auto-generate UUID saat create
     protected static function boot()
     {
         parent::boot();

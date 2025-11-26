@@ -1,24 +1,19 @@
 <?php
-
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class ConsultationsSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $consultations = [
             [
                 'user_id' => 2, // John Doe
-                'psychologist_id' => 4, // Dr. Sarah Wijaya
-                'fee' => 150000,
-                'status' => 'ended', // PASTIKAN: 'ended' bukan 'completed'
+                'psychologist_id' => 1, // ✅ Dr. Sarah (ID dari tabel psychologists)
+                'fee' => 250000,
+                'status' => 'ended',
                 'started_at' => now()->subDays(2)->subHours(3),
                 'ended_at' => now()->subDays(2)->subHours(2),
                 'rated' => true,
@@ -29,9 +24,9 @@ class ConsultationsSeeder extends Seeder
             ],
             [
                 'user_id' => 3, // Jane Smith
-                'psychologist_id' => 5, // Dr. Ahmad Fauzi
-                'fee' => 200000,
-                'status' => 'active', // ✅
+                'psychologist_id' => 2, // ✅ Budi (ID dari tabel psychologists)
+                'fee' => 180000,
+                'status' => 'active',
                 'started_at' => now()->subMinutes(30),
                 'ended_at' => null,
                 'rated' => false,
@@ -42,9 +37,9 @@ class ConsultationsSeeder extends Seeder
             ],
             [
                 'user_id' => 2, // John Doe
-                'psychologist_id' => 6, // Dr. Maria Sari
-                'fee' => 120000,
-                'status' => 'pending', // ✅
+                'psychologist_id' => 4, // ✅ Andi (ID dari tabel psychologists)
+                'fee' => 150000,
+                'status' => 'pending',
                 'started_at' => null,
                 'ended_at' => null,
                 'rated' => false,

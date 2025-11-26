@@ -1,11 +1,9 @@
 <?php
-
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Psychologist;
-use Illuminate\Support\Facades\DB;
 
 class PsychologistSeeder extends Seeder
 {
@@ -18,7 +16,7 @@ class PsychologistSeeder extends Seeder
                 'password' => 'sarah123',
                 'avatar' => 'users-avatar/Dr.SarahWijaya.jpg',
                 'specialization' => 'Psikolog Klinis Dewasa',
-                'bio' => 'Berpengalaman lebih dari 8 tahun menangani kasus depresi, kecemasan, dan trauma. Pendekatan yang hangat dan berpusat pada klien.',
+                'bio' => 'Berpengalaman lebih dari 8 tahun menangani kasus depresi, kecemasan, dan trauma.',
                 'education' => 'S2 Psikologi Profesi UI',
                 'experience' => '8 Tahun',
                 'fee' => 250000,
@@ -34,7 +32,7 @@ class PsychologistSeeder extends Seeder
                 'password' => 'budi123',
                 'avatar' => 'users-avatar/BudiSantoso.jpg',
                 'specialization' => 'Psikolog Anak & Remaja',
-                'bio' => 'Fokus pada tumbuh kembang anak, pola asuh, dan masalah emosional pada remaja. Menggunakan metode terapi bermain.',
+                'bio' => 'Fokus pada tumbuh kembang anak, pola asuh, dan masalah emosional pada remaja.',
                 'education' => 'S2 Psikologi Perkembangan UGM',
                 'experience' => '5 Tahun',
                 'fee' => 180000,
@@ -50,7 +48,7 @@ class PsychologistSeeder extends Seeder
                 'password' => 'linda123',
                 'avatar' => 'users-avatar/Dr.LindaKusuma.jpg',
                 'specialization' => 'Psikiater',
-                'bio' => 'Dokter spesialis kedokteran jiwa dengan keahlian dalam manajemen obat dan psikoterapi untuk gangguan mental berat.',
+                'bio' => 'Dokter spesialis kedokteran jiwa dengan keahlian dalam manajemen obat.',
                 'education' => 'Spesialis Kedokteran Jiwa UNAIR',
                 'experience' => '12 Tahun',
                 'fee' => 350000,
@@ -66,7 +64,7 @@ class PsychologistSeeder extends Seeder
                 'password' => 'andi123',
                 'avatar' => 'users-avatar/AndiPratama.jpg',
                 'specialization' => 'Psikolog Industri & Organisasi',
-                'bio' => 'Membantu profesional muda mengatasi burnout, stress kerja, dan perencanaan karir.',
+                'bio' => 'Membantu profesional muda mengatasi burnout, stress kerja.',
                 'education' => 'S2 Psikologi UNPAD',
                 'experience' => '4 Tahun',
                 'fee' => 150000,
@@ -82,7 +80,7 @@ class PsychologistSeeder extends Seeder
                 'password' => 'jessica123',
                 'avatar' => 'users-avatar/JessicaTan.jpg',
                 'specialization' => 'Psikolog Pernikahan',
-                'bio' => 'Ahli dalam konseling pasangan dan keluarga. Membantu memperbaiki komunikasi dan keharmonisan rumah tangga.',
+                'bio' => 'Ahli dalam konseling pasangan dan keluarga.',
                 'education' => 'S2 Profesi Psikologi Atma Jaya',
                 'experience' => '6 Tahun',
                 'fee' => 220000,
@@ -95,7 +93,6 @@ class PsychologistSeeder extends Seeder
         ];
 
         foreach ($data as $item) {
-            // 1. Buat User Akun Dulu (Enkripsi Password disini)
             $user = User::create([
                 'name' => $item['name'],
                 'email' => $item['email'],
@@ -104,7 +101,6 @@ class PsychologistSeeder extends Seeder
                 'avatar' => $item['avatar'],
             ]);
 
-            // 2. Buat Profil Psikolog (Link ke User ID tadi)
             Psychologist::create([
                 'user_id' => $user->id,
                 'specialization' => $item['specialization'],

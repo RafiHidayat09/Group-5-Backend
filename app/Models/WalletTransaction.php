@@ -11,6 +11,7 @@ class WalletTransaction extends Model
 
     protected $fillable = [
         'wallet_id',
+        'consultation_id',
         'type',
         'amount',
         'description',
@@ -28,6 +29,11 @@ class WalletTransaction extends Model
     public function wallet()
     {
         return $this->belongsTo(Wallet::class);
+    }
+
+    public function consultation()
+    {
+        return $this->belongsTo(Consultation::class);
     }
 
     // Scopes
