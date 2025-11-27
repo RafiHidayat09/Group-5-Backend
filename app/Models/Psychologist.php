@@ -96,4 +96,67 @@ class Psychologist extends Model
     {
         return 'Rp ' . number_format($this->fee, 0, ',', '.');
     }
+
+    public function getTotalEarnings()
+    {
+        return $this->consultations()
+            ->where('status', 'completed')
+            ->sum('fee') ?? 0;
+    }
+
+    public function getWalletBalance()
+    {
+        // Cari wallet milik user ini
+        $wallet = Wallet::where('user_id', $this->user_id)->first();
+
+        if (!$wallet) {
+            return 0;
+        }
+
+        $credit = WalletTransaction::where('wallet_id', $wallet->id)
+            ->where('type', 'credit')
+            ->where('status', 'completed')
+            ->sum('amount') ?? 0;
+
+        $debit = WalletTransaction::where('wallet_id', $wallet->id)
+            ->where('type', 'debit')
+            ->where('status', 'completed')
+            ->sum('amount') ?? 0;
+
+        return $credit - $debit;
+    }
+
+    public function getMonthlyEarnings($month = null, $year = null)
+    {
+        $month = $month ?? now()->month;
+        $year = $year ?? now()->year;
+
+        return $this->consultations()
+            ->where('status', 'completed')
+            ->whereYear('updated_at', $year)
+            ->whereMonth('updated_at', $month)
+            ->sum('fee') ?? 0;
+    }
+    public function addEarnings($consultationId, $amount, $description = 'Consultation fee')
+    {
+        // Cari wallet user ini
+        $wallet = Wallet::firstOrCreate(
+            ['user_id' => $this->user_id],
+            ['balance' => 0]
+        );
+
+        return WalletTransaction::create([
+            'wallet_id' => $wallet->id,
+            'user_id' => $this->user_id,  // Tambahkan ini jika ada di database
+            'consultation_id' => $consultationId,
+            'type' => 'credit',
+            'amount' => $amount,
+            'description' => $description,
+            'status' => 'completed',
+            'metadata' => [
+                'psychologist_id' => $this->id,
+                'source' => 'consultation'
+            ]
+        ]);
+    }
 }

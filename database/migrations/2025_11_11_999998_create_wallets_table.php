@@ -15,7 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->decimal('balance', 15, 2)->default(0);
+            $table->string('currency')->default('IDR');
             $table->timestamps();
+
+            $table->index('user_id');
         });
     }
 

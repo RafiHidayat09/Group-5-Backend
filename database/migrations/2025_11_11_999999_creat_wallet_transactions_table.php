@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('wallet_transactions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('wallet_id')->constrained('wallets')->onDelete('cascade');
             $table->foreignId('consultation_id')->nullable()->constrained('consultations')->onDelete('set null');
             $table->enum('type', ['topup', 'payment', 'refund', 'withdrawal'])->default('topup');
@@ -22,6 +23,11 @@ return new class extends Migration
             $table->enum('status', ['pending', 'completed', 'failed'])->default('pending');
             $table->json('metadata')->nullable();
             $table->timestamps();
+
+            $table->index('user_id');
+            $table->index('wallet_id');
+            $table->index('consultation_id');
+            $table->index(['user_id', 'created_at']);
         });
     }
 

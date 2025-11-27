@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Psychologist;
 use App\Models\User;
 use App\Models\Consultation;
+use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -159,68 +160,6 @@ class PsychologistController extends Controller
         }
     }
 
-    // --- BAGIAN YANG HILANG DARI KODE ANDA (TAPI PENTING) ---
-
-    public function dashboardStats()
-    {
-        try {
-            $user = auth()->guard('api')->user();
-
-            // Auto Create Profile jika belum ada (Mencegah Error 500)
-            $psychologistProfile = Psychologist::firstOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'specialization' => 'Psikolog Umum',
-                    'status' => 'offline',
-                    'fee' => 150000,
-                    'rating' => 0,
-                    'review_count' => 0,
-                    'is_available' => false,
-                    'bio' => '-',
-                    'experience' => '-',
-                    'education' => '-'
-                ]
-            );
-
-            $stats = [
-                'totalConsultations' => Consultation::where('psychologist_id', $psychologistProfile->id)->count(),
-                'activeConsultations' => Consultation::where('psychologist_id', $psychologistProfile->id)
-                    ->where('status', 'active')
-                    ->count(),
-                'totalEarnings' => WalletTransaction::whereHas('consultation', function($query) use ($psychologistProfile) {
-                        $query->where('psychologist_id', $psychologistProfile->id);
-                    })
-                    ->where('type', 'payment')
-                    ->sum('amount') ?? 0,
-                'averageRating' => round((float) $psychologistProfile->rating, 1),
-                'currentStatus' => $psychologistProfile->status
-            ];
-
-            return response()->json(['success' => true, 'data' => $stats]);
-
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    public function updateStatus(Request $request)
-    {
-        try {
-            $request->validate(['status' => 'required|in:online,offline']);
-            $user = auth()->guard('api')->user();
-            $profile = Psychologist::where('user_id', $user->id)->firstOrFail();
-
-            $profile->update([
-                'status' => $request->status,
-                'is_available' => $request->status === 'online'
-            ]);
-
-            return response()->json(['success' => true, 'message' => 'Status updated']);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
-    }
-
     public function consultations(Request $request)
     {
         try {
@@ -258,12 +197,87 @@ class PsychologistController extends Controller
         }
     }
 
-    // Fungsi dummy untuk mencegah error route 404
-    public function recentConsultations() { return $this->consultations(new Request(['status' => 'active,pending'])); }
-    public function profile() { return $this->show(auth()->guard('api')->id()); }
-    public function updateProfile(Request $request) { return response()->json(['success'=>true]); } // Implementasi lengkap ada di chat sebelumnya
-    public function earnings() { return response()->json(['success'=>true, 'data' => ['total'=>0]]); }
-    public function schedule() { return response()->json(['success'=>true, 'data' => []]); }
-    public function updateSchedule() { return response()->json(['success'=>true]); }
-    public function reviews() { return response()->json(['success'=>true, 'data' => []]); }
+    /**
+     * Get Psychologist Dashboard Statistics
+     */
+    public function wallet()
+    {
+        try {
+            $user = auth()->guard('api')->user();
+
+            $profile = Psychologist::where('user_id', $user->id)->first();
+            if (!$profile) {
+                return response()->json(['success' => false, 'message' => 'Profile not found'], 404);
+            }
+
+            $wallet = Wallet::where('user_id', $user->id)->first();
+            $currentBalance = $wallet ? $wallet->balance : 0;
+
+            $totalEarnings = 0;
+            $monthlyEarnings = 0;
+            // Variable baru untuk menampung transaksi
+            $recentTransactions = [];
+
+            if ($wallet) {
+                $totalEarnings = WalletTransaction::where('wallet_id', $wallet->id)
+                    ->where('type', 'topup')
+                    ->where('status', 'completed')
+                    ->sum('amount');
+
+                $monthlyEarnings = WalletTransaction::where('wallet_id', $wallet->id)
+                    ->where('type', 'topup')
+                    ->where('status', 'completed')
+                    ->whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year)
+                    ->sum('amount');
+
+                // --- TAMBAHAN: Ambil 5 Transaksi Terakhir ---
+                $recentTransactions = WalletTransaction::where('wallet_id', $wallet->id)
+                    ->orderBy('created_at', 'desc')
+                    ->limit(5)
+                    ->get()
+                    ->map(function($trx) {
+                        return [
+                            'id' => $trx->id,
+                            'description' => $trx->description,
+                            'date' => $trx->created_at->format('d M Y H:i'),
+                            'amount' => $trx->amount,
+                            'type' => $trx->type, // topup / withdrawal / payment
+                            'is_credit' => $trx->type === 'topup', // Logic warna hijau/merah
+                        ];
+                    });
+            }
+
+            // ... (hitungan statistik konsultasi sama)
+            $consultations = Consultation::where('psychologist_id', $profile->id);
+            $totalConsultations = $consultations->count();
+            $completedConsultations = (clone $consultations)->where('status', 'completed')->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'profile' => [
+                        'name' => $user->name,
+                        'avatar' => $user->avatar ? asset('storage/' . $user->avatar) : null,
+                    ],
+                    // Struktur Nested yang Benar
+                    'wallet' => [
+                        'balance' => $currentBalance,
+                    ],
+                    'earnings' => [
+                        'total' => $totalEarnings,
+                        'monthly' => $monthlyEarnings,
+                    ],
+                    'recent_transactions' => $recentTransactions, // <-- Kirim ke Frontend
+                    'stats' => [
+                        'total_consultations' => $totalConsultations,
+                        'completed_consultations' => $completedConsultations
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 }

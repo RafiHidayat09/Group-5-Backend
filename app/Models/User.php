@@ -31,6 +31,11 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasOne(Psychologist::class);
     }
 
+    public function articles()
+    {
+        return $this->hasMany(Article::class, 'penulis_id');
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *

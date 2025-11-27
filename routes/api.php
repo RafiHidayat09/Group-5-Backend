@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\PsychologistController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Api\EarningsController;
+use App\Http\Controllers\ArticleController;
 use Illuminate\Support\Facades\Storage;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -18,6 +20,9 @@ Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallbac
 Route::get('/psychologists', [PsychologistController::class, 'index']);
 Route::get('/psychologists/available', [PsychologistController::class, 'available']);
 Route::get('/psychologists/{id}', [PsychologistController::class, 'show']);
+
+Route::get('/articles', [ArticleController::class, 'index']);
+Route::get('/articles/{id}', [ArticleController::class, 'show']);
 
 Route::middleware(['auth:api'])->group(function () {
 
@@ -49,9 +54,10 @@ Route::middleware(['auth:api'])->group(function () {
     Route::middleware(['role:psychologist'])->prefix('psychologist')->group(function () {
 
         // Dashboard & Stats
-        Route::get('/dashboard-stats', [PsychologistController::class, 'dashboardStats']); // Statistik Dashboard
+        Route::get('/wallet', [PsychologistController::class, 'wallet']);
         Route::get('/recent-consultations', [PsychologistController::class, 'recentConsultations']); // Konsultasi Terbaru (Home)
-        Route::get('/earnings', [PsychologistController::class, 'earnings']); // Laporan Pendapatan
+        Route::get('/earnings', [EarningsController::class, 'getEarnings']);
+        Route::get('/earnings/chart', [EarningsController::class, 'getEarningsChart']);
 
         // Kelola Konsultasi
         Route::get('/consultations', [PsychologistController::class, 'consultations']); // List Semua Chat
@@ -82,7 +88,7 @@ Route::middleware(['auth:api'])->group(function () {
 
         // Consultation Detail & End
         Route::get('/consultation/{id}', [ConsultationController::class, 'show']);
-        Route::post('/consultation/{id}/end', [ConsultationController::class, 'end']); // Bisa diakhiri kedua pihak
+        Route::post('/consultation/{id}/end', [ConsultationController::class, 'endSession']); // Bisa diakhiri kedua pihak
 
         // Chat / Messages (PENTING: Keduanya harus bisa kirim pesan)
         Route::get('/consultation/{consultationId}/messages', [MessageController::class, 'index']);
@@ -116,6 +122,12 @@ Route::middleware(['auth:api'])->group(function () {
         // Kelola Withdrawal (Pencairan dana psikolog)
         Route::get('/withdrawals', [AdminController::class, 'getWithdrawalRequests']);
         Route::post('/withdrawals/{id}/approve', [AdminController::class, 'approveWithdrawal']);
+    });
+
+    Route::middleware(['role:psychologist,admin'])->group(function () {
+        Route::post('/articles', [ArticleController::class, 'store']);
+        Route::put('/articles/{id}', [ArticleController::class, 'update']);
+        Route::delete('/articles/{id}', [ArticleController::class, 'destroy']);
     });
 
 });

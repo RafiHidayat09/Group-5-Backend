@@ -61,6 +61,9 @@ class WalletController extends Controller
 
             // Create transaction record
             $transaction = $wallet->transactions()->create([
+                'wallet_id' => $wallet->id,
+                'user_id' => $user->id,
+                'consultation_id' => null,
                 'type' => 'topup',
                 'amount' => $request->amount,
                 'description' => 'Top Up Wallet',

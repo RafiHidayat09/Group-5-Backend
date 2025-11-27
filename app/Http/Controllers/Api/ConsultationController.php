@@ -7,6 +7,7 @@ use App\Models\Consultation;
 use App\Models\Psychologist;
 use App\Models\Wallet;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -31,6 +32,9 @@ class ConsultationController extends Controller
     /**
      * Start a new consultation
      */
+    /**
+ * Start a new consultation
+ */
     public function start(Request $request)
     {
         // Validasi: Pastikan ID yang dikirim adalah ID USER yang valid
@@ -41,18 +45,24 @@ class ConsultationController extends Controller
         DB::beginTransaction();
 
         try {
-            $patient = auth()->guard('api')->user(); // User yang login (Pasien)
+            $patient = auth()->guard('api')->user();
 
             // 1. Cari Profil Psikolog berdasarkan User ID yang dikirim
             $psychologistProfile = Psychologist::where('user_id', $request->psychologist_id)->first();
 
             if (!$psychologistProfile) {
-                return response()->json(['message' => 'User ini bukan psikolog'], 404);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User ini bukan psikolog'
+                ], 404);
             }
 
             // Cek: Jangan konsultasi dengan diri sendiri
             if ($patient->id === $psychologistProfile->user_id) {
-                return response()->json(['message' => 'Tidak bisa konsultasi dengan diri sendiri'], 400);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak bisa konsultasi dengan diri sendiri'
+                ], 400);
             }
 
             // 2. Cek Ketersediaan (Online/Available)
@@ -90,27 +100,27 @@ class ConsultationController extends Controller
             $wallet = Wallet::where('user_id', $patient->id)->first();
             $requiresPayment = true;
 
-            // Ambil nama dokter untuk riwayat transaksi
-            $doctorName = $psychologistProfile->user->name ?? 'Psikiater';
-
             if ($wallet && $wallet->balance >= $psychologistProfile->fee) {
                 // Bayar otomatis
                 $wallet->balance -= $psychologistProfile->fee;
                 $wallet->save();
 
-                // Catat Transaksi Keluar (User)
-                $wallet->transactions()->create([
+                // Catat Transaksi - SESUAIKAN DENGAN MODEL WalletTransaction
+                WalletTransaction::create([
+                    'wallet_id' => $wallet->id,
+                    'user_id' => $patient->id,
+                    'consultation_id' => $consultation->id,
                     'type' => 'payment',
                     'amount' => $psychologistProfile->fee,
-                    'description' => 'Konsultasi dengan ' . $doctorName,
-                    'status' => 'completed'
+                    'description' => 'Konsultasi dengan ' . $psychologistProfile->user->name,
+                    'status' => 'completed',
+                    'payment_method' => 'wallet'
                 ]);
 
-                // Update Status Konsultasi
+                // Update Status Konsultasi - HANYA field yang ada di model
                 $consultation->update([
                     'status' => 'active',
-                    'started_at' => now(),
-                    'payment_status' => 'paid'
+                    'started_at' => now()
                 ]);
 
                 $requiresPayment = false;
@@ -129,10 +139,11 @@ class ConsultationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal memulai konsultasi',
-                'error' => $e->getMessage()
+                'error' => env('APP_DEBUG') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
     }
@@ -191,6 +202,9 @@ class ConsultationController extends Controller
     /**
      * End consultation session
      */
+    /**
+ * End consultation session - Alternative version
+ */
     public function endSession($id)
     {
         DB::beginTransaction();
@@ -200,17 +214,15 @@ class ConsultationController extends Controller
             $consultation = Consultation::where('id', $id)
                 ->where(function($query) use ($currentUser) {
                     $query->where('user_id', $currentUser->id)
-                          ->orWhereHas('psychologist', function($q) use ($currentUser) {
-                              $q->where('user_id', $currentUser->id);
-                          });
+                        ->orWhereHas('psychologist', function($q) use ($currentUser) {
+                            $q->where('user_id', $currentUser->id);
+                        });
                 })
                 ->where('status', 'active')
                 ->firstOrFail();
 
-            $consultation->update([
-                'status' => 'ended',
-                'ended_at' => now()
-            ]);
+            // Gunakan method dari model
+            $consultation->markAsEnded();
 
             DB::commit();
 
@@ -224,12 +236,19 @@ class ConsultationController extends Controller
                 ]
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
+                'message' => 'Konsultasi tidak ditemukan atau sudah berakhir'
+            ], 404);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
                 'message' => 'Gagal mengakhiri konsultasi',
-                'error' => $e->getMessage()
+                'error' => env('APP_DEBUG') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
     }

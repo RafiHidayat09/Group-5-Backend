@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             WalletSeeder::class,
             ConsultationsSeeder::class,
             WalletTransactionsSeeder::class,
+            ArticleSeeder::class
         ]);
     }
 }
