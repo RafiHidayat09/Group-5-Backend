@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\PsikologProfileController;
@@ -37,5 +38,7 @@ Route::get('/users', [UserController::class, 'index']);
 Route::delete('/users/{id}', [UserController::class, 'destroy']);
 Route::get('/users/stats', [UserController::class, 'stats']);
 
-
+     Route::get('/chat/psikiater-users', [ChatController::class, 'psikiaterUsers']);
+    Route::get('/chat/{userId}', [ChatController::class, 'room']);
+    Route::post('/chat/send', [ChatController::class, 'send']);
 });
