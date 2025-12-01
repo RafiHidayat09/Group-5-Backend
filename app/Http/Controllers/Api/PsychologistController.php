@@ -410,4 +410,52 @@ class PsychologistController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+
+    public function profile()
+{
+    try {
+        $user = auth()->guard('api')->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $psy = Psychologist::with('user')->where('user_id', $user->id)->first();
+
+        if (!$psy) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Profil tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => [
+                    'id' => $psy->user->id,
+                    'name' => $psy->user->name,
+                    'email' => $psy->user->email,
+                    'avatar' => $psy->user->avatar ? asset('storage/' . $psy->user->avatar) : null,
+                ],
+                'profile' => [
+                    'foto' => $psy->user->avatar,
+                    'spesialisasi' => $psy->specialization,
+                    'pengalaman' => $psy->experience,
+                    'deskripsi' => $psy->bio,
+                ]
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
 }

@@ -67,6 +67,7 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/profile', [PsychologistController::class, 'profile']); // Get Profile
         Route::put('/profile', [PsychologistController::class, 'updateProfile']); // Update Profile
         Route::put('/status', [PsychologistController::class, 'updateStatus']); // Online/Offline
+        Route::get('/psikolog-profile', [PsychologistController::class, 'profile']);
 
         // Schedule
         Route::get('/schedule', [PsychologistController::class, 'schedule']);
@@ -132,5 +133,7 @@ Route::middleware(['auth:api'])->group(function () {
         Route::put('/articles/{id}', [ArticleController::class, 'update']);
         Route::delete('/articles/{id}', [ArticleController::class, 'destroy']);
     });
+
+
 
 });
