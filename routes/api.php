@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -107,6 +108,7 @@ Route::middleware(['auth:api'])->group(function () {
 
         // Kelola Users (Pasien)
         Route::get('/users', [AdminController::class, 'getAllUsers']);
+        Route::get('/users/stat', [UserController::class, 'stats']);
         Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
 
         // Psikolog CRUD (Admin)

@@ -351,10 +351,13 @@ class ConsultationController extends Controller
 
             // Catat Transaksi
             $wallet->transactions()->create([
+                'user_id' => $user->id,
+                'consultation_id' => $consultation->id,
                 'type' => 'payment',
                 'amount' => $consultation->fee,
                 'description' => 'Pembayaran konsultasi dengan ' . $doctorName,
-                'status' => 'completed'
+                'status' => 'completed',
+                'payment_method' => 'wallet'
             ]);
 
             // Update Konsultasi
