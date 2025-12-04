@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Api\EarningsController;
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\AttachmentController;
 use Illuminate\Support\Facades\Storage;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -33,13 +34,10 @@ Route::middleware(['auth:api'])->group(function () {
     });
 
     // File Download (Siapapun yang login bisa download lampiran chat)
-    Route::get('/attachments/{fileName}', function ($fileName) {
-        if (!Storage::disk('public')->exists($fileName)) {
-            abort(404);
-        }
-        $filePath = Storage::disk('public')->path($fileName);
-        return response()->download($filePath);
-    })->name('api.attachments.download');
+    Route::get('/attachments/download/{fileName}', [AttachmentController::class, 'download']);
+
+    // Alternative: attachment download via ID (if you store attachments in messages)
+    Route::get('/messages/{id}/download', [MessageController::class, 'downloadAttachment']);
 
     Route::middleware(['role:user'])->group(function () {
         // Wallet Action (User yang bayar)
@@ -128,6 +126,9 @@ Route::middleware(['auth:api'])->group(function () {
         // Kelola Withdrawal (Pencairan dana psikolog)
         Route::get('/withdrawals', [AdminController::class, 'getWithdrawalRequests']);
         Route::post('/withdrawals/{id}/approve', [AdminController::class, 'approveWithdrawal']);
+
+        Route::get('/attachments', [AttachmentController::class, 'index']);
+        Route::delete('/attachments/{fileName}', [AttachmentController::class, 'delete']);
     });
 
     Route::middleware(['role:psychologist,admin'])->group(function () {

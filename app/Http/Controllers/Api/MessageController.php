@@ -8,10 +8,12 @@ use App\Models\Consultation;
 use App\Models\User;
 use App\Models\Psychologist;
 use App\Events\MessageSent;
+use App\Events\MessageDeleted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class MessageController extends Controller
 {
@@ -177,22 +179,77 @@ class MessageController extends Controller
         try {
             $user = auth()->guard('api')->user();
 
-            $message = ChMessage::where('from_id', $user->id)
-                ->where('from_type', get_class($user))
-                ->findOrFail($id);
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
 
+            // Find message with consultation relationship
+            $message = ChMessage::with('consultation')->findOrFail($id);
+
+            // Check authorization - apakah user adalah peserta dalam konsultasi ini?
+            $isAuthorized = false;
+
+            if ($message->consultation) {
+                if ($user instanceof \App\Models\User) {
+                    // User biasa - cek apakah dia yang konsultasi
+                    $isAuthorized = $message->consultation->user_id == $user->id;
+                } elseif ($user instanceof \App\Models\Psychologist) {
+                    // Psychologist - cek apakah dia yang menangani
+                    $isAuthorized = $message->consultation->psychologist_id == $user->id;
+                }
+            }
+
+            // Tambahan: cek apakah user adalah pengirim pesan
+            if (!$isAuthorized) {
+                $isAuthorized = ($message->from_id == $user->id && $message->from_type == get_class($user));
+            }
+
+            if (!$isAuthorized) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses untuk menghapus pesan ini'
+                ], 403);
+            }
+
+            // Store data sebelum delete untuk broadcast
+            $consultationId = $message->consultation_id;
+            $messageId = $message->id;
+
+            // Soft delete atau hard delete
             $message->delete();
+
+            // Broadcast deletion event
+            if ($consultationId) {
+                broadcast(new MessageDeleted($consultationId, $messageId))->toOthers();
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Pesan berhasil dihapus'
             ]);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pesan tidak ditemukan atau Anda tidak memiliki akses'
+            ], 404);
+
         } catch (\Exception $e) {
+            Log::error('Failed to delete message', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => auth()->guard('api')->id(),
+                'user_type' => get_class(auth()->guard('api')->user()),
+                'message_id' => $id
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menghapus pesan',
-                'error' => $e->getMessage()
+                'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -273,17 +330,39 @@ class MessageController extends Controller
      */
     private function handleFileUpload($file)
     {
-        $path = $file->store('attachments', 'public');
+        try {
+            // Generate safe filename
+            $originalName = $file->getClientOriginalName();
+            $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
+            $fileName = time() . '_' . $safeName;
 
-        return [
-            'type' => $this->getFileType($file->getMimeType()),
-            'file' => $path,
-            'title' => $file->getClientOriginalName(),
-            'size' => $file->getSize(),
-            'mime_type' => $file->getMimeType(),
-            'url' => Storage::url($path),
-            'download_url' => route('api.attachments.download', ['fileName' => $path])
-        ];
+            // Store file
+            $path = $file->storeAs('attachments', $fileName, 'public');
+
+            // Debug info
+            Log::info('File uploaded', [
+                'original' => $originalName,
+                'stored_as' => $fileName,
+                'path' => $path,
+                'full_path' => storage_path('app/public/' . $path),
+                'exists' => Storage::disk('public')->exists($path)
+            ]);
+
+            return [
+                'type' => $this->getFileType($file->getMimeType()),
+                'file' => $fileName,
+                'title' => $originalName,
+                'size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'url' => Storage::url($path),
+                'download_url' => url('/api/attachments/download/' . $fileName),
+                'extension' => $file->getClientOriginalExtension(),
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('File upload failed', ['error' => $e->getMessage()]);
+            throw $e;
+        }
     }
 
     /**
@@ -291,17 +370,69 @@ class MessageController extends Controller
      */
     private function getFileType($mimeType)
     {
-        if (str_contains($mimeType, 'image/')) {
+        // Lebih spesifik untuk file types yang umum
+        $mimeType = strtolower($mimeType);
+
+        // Images
+        if (str_starts_with($mimeType, 'image/')) {
             return 'image';
-        } elseif (str_contains($mimeType, 'video/')) {
-            return 'video';
-        } elseif (str_contains($mimeType, 'audio/')) {
-            return 'audio';
-        } elseif ($mimeType === 'application/pdf') {
-            return 'pdf';
-        } else {
-            return 'file';
         }
+
+        // Videos
+        if (str_starts_with($mimeType, 'video/')) {
+            return 'video';
+        }
+
+        // Audios
+        if (str_starts_with($mimeType, 'audio/')) {
+            return 'audio';
+        }
+
+        // Documents
+        if ($mimeType === 'application/pdf') {
+            return 'pdf';
+        }
+
+        // Microsoft Office
+        if (in_array($mimeType, [
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ])) {
+            return 'document';
+        }
+
+        if (in_array($mimeType, [
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        ])) {
+            return 'spreadsheet';
+        }
+
+        if (in_array($mimeType, [
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        ])) {
+            return 'presentation';
+        }
+
+        // Archives
+        if (in_array($mimeType, [
+            'application/zip',
+            'application/x-rar-compressed',
+            'application/x-7z-compressed',
+            'application/x-tar',
+            'application/gzip'
+        ])) {
+            return 'archive';
+        }
+
+        // Text files
+        if (str_starts_with($mimeType, 'text/')) {
+            return 'text';
+        }
+
+        // Default
+        return 'file';
     }
 
     /**
@@ -344,5 +475,54 @@ class MessageController extends Controller
                 'seen' => true,
                 'seen_at' => now()
             ]);
+    }
+
+    public function download($id)
+    {
+        try {
+            $user = auth()->guard('api')->user();
+            $message = ChMessage::where('to_id', $user->id)->where('to_type', get_class($user))->findOrFail($id);
+
+            // Authorization check
+            $consultation = $message->consultation;
+            if (!$consultation) {
+                abort(404, 'Consultation not found');
+            }
+
+            $isParticipant = false;
+            if ($user->role === 'user') {
+                $isParticipant = $consultation->user_id == $user->id;
+            } elseif ($user->role === 'psychologist') {
+                if ($user->psychologist) {
+                    $isParticipant = $consultation->psychologist_id == $user->psychologist->id;
+                }
+            }
+
+            if (!$isParticipant) {
+                abort(403, 'Unauthorized');
+            }
+
+            if (!$message->attachment_path || !Storage::exists($message->attachment_path)) {
+                abort(404, 'File not found');
+            }
+
+            // Get file info
+            $path = $message->attachment_path;
+            $originalName = $message->attachment_name ?: basename($path);
+            $mimeType = Storage::mimeType($path);
+
+            // Return file as download response
+            return Storage::download($path, $originalName, [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'attachment; filename="' . $originalName . '"'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Download failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Download failed'
+            ], 500);
+        }
     }
 }
