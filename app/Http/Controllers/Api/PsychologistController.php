@@ -161,16 +161,23 @@ class PsychologistController extends Controller
             'experience' => 'nullable|string',
             'fee' => 'nullable|integer|min:0',
             'bio' => 'nullable|string',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         try {
             DB::beginTransaction();
+
+            $avatarPath = null;
+            if ($request->hasFile('avatar')) {
+                $avatarPath = $request->file('avatar')->store('users-avatar', 'public');
+            }
 
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password ?? 'password123'),
                 'role' => 'psychologist',
+                'avatar' => $avatarPath
             ]);
 
             $lastPsychologist = Psychologist::orderBy('id', 'desc')->first();
